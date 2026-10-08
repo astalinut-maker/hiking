@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>爬爬狗</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+/* 版面：白底、粗黑體、膠囊按鈕、手剪風平塗色塊；左欄條件＋清單，右欄固定地圖，手機為 條件 → 地圖 → 清單 */
+:root{
+  --bg:#FFFFFF; --panel:#F6F6F6; --ink:#1A1A1A; --muted:#5E5E5E; --line:#1A1A1A; --soft:#E4E4E4;
+  --yellow:#FBF056; --yellow-ink:#1A1A1A;
+  --green:#1BA271; --orange:#FAA331; --red:#EA4D2D; --purple:#6E63BF; --aqua:#90D8D9; --pink:#FDB9BA; --slate:#C5CFD6;
+  --sea:#FFFFFF; --land:#C5CFD6; --grid:#D9D9D9; --shelf:#90D8D9; --ridge:#7F93A0; --dot:#6A747B; --warn:#B33A1E;
+  --font:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141414; --panel:#232323; --ink:#F2F2F2; --muted:#A8A8A8; --line:#F2F2F2; --soft:#3A3A3A;
+    --sea:#141414; --land:#3B4750; --grid:#2E2E2E; --shelf:#2C6A6E; --ridge:#7C93A2; --dot:#9FB0BA; --warn:#FF8F73;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141414; --panel:#232323; --ink:#F2F2F2; --muted:#A8A8A8; --line:#F2F2F2; --soft:#3A3A3A;
+  --sea:#141414; --land:#3B4750; --grid:#2E2E2E; --shelf:#2C6A6E; --ridge:#7C93A2; --dot:#9FB0BA; --warn:#FF8F73;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 var(--font);padding-inline:16px;padding-block:20px 56px;-webkit-text-size-adjust:100%}
+.wrap{max-width:1200px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.logo{font-weight:900;letter-spacing:.32em;font-size:.95rem}
+.pillnote{border:1.5px solid var(--line);border-radius:99px;padding:3px 14px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:8px 24px;align-items:center;margin-bottom:22px}
+.hero svg{width:100%;height:auto;max-height:220px}
+h1{font-weight:900;font-size:clamp(2.4rem,9vw,4.4rem);line-height:1.1;letter-spacing:.04em;margin:8px 0 12px;text-wrap:balance}
+.sub{margin:0;max-width:34em;font-weight:500}
+h2{font-weight:900;font-size:1.5rem;letter-spacing:.06em;margin:0}
+@media (max-width:640px){.hero{grid-template-columns:1fr}.hero svg{max-height:150px}}
+.bl-or{fill:var(--orange)}.bl-gr{fill:var(--green)}.bl-pu{fill:var(--purple)}.bl-aq{fill:var(--aqua)}.bl-rd{fill:var(--red)}.bl-pk{fill:var(--pink)}.bl-sl{fill:var(--slate)}.bl-ye{fill:var(--yellow)}.bl-ink{fill:#1A1A1A}.bl-wh{fill:#FFFFFF}
+
+/* layout */
+.layout{display:grid;gap:18px;grid-template-columns:minmax(0,1fr);grid-template-areas:"form" "map" "results"}
+.form{grid-area:form}.results{grid-area:results}.mapbox{grid-area:map}
+@media (min-width:960px){
+  .layout{grid-template-columns:minmax(0,440px) minmax(0,1fr);grid-template-areas:"form map" "results map";align-items:start;gap:22px}
+}
+
+/* form */
+.panel{background:var(--panel);border-radius:24px;padding:22px}
+.form{display:grid;gap:22px}
+.field{display:grid;gap:9px;min-width:0;border:0;margin:0;padding:0}
+.field>legend,.field>label.t{font-size:.85rem;font-weight:900;letter-spacing:.08em;padding:0}
+.help{margin:0;font-size:.8rem;color:var(--muted)}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:22px}
+
+.stepper{display:flex;align-items:stretch;width:max-content;max-width:100%;border:1.5px solid var(--line);border-radius:99px;overflow:hidden;background:var(--bg)}
+.stepper button{width:48px;border:0;background:transparent;font-size:1.3rem;font-weight:700;cursor:pointer}
+.stepper button:hover{background:var(--yellow);color:var(--yellow-ink)}
+.stepper input{width:64px;text-align:center;border:0;background:transparent;font-weight:900;font-size:1.05rem;font-variant-numeric:tabular-nums;padding:8px 0;-moz-appearance:textfield}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+.seg,.chips{display:flex;flex-wrap:wrap;gap:8px}
+.seg input,.chips input{position:absolute;opacity:0;pointer-events:none}
+.seg label,.chips label{display:inline-flex;align-items:center;min-height:42px;padding:6px 18px;border:1.5px solid var(--line);border-radius:99px;cursor:pointer;user-select:none;background:var(--bg);font-weight:700;font-size:.93rem}
+.seg label:hover,.chips label:hover{background:color-mix(in srgb,var(--yellow) 45%,var(--bg))}
+.seg input:checked+label,.chips input:checked+label{background:var(--yellow);color:var(--yellow-ink)}
+.seg input:focus-visible+label,.chips input:focus-visible+label{outline:3px solid var(--purple);outline-offset:2px}
+.chips input:checked+label::before{content:"✓";margin-right:6px}
+
+.pace{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pace input{position:absolute;opacity:0;pointer-events:none}
+.pace label{display:grid;gap:2px;align-content:start;padding:10px 12px;border:1.5px solid var(--line);border-radius:18px;cursor:pointer;background:var(--bg);min-width:0}
+.pace label:hover{background:color-mix(in srgb,var(--yellow) 45%,var(--bg))}
+.pace .n{font-weight:900;font-size:1.05rem}
+.pace .j{font-size:.72rem;font-weight:700;letter-spacing:.04em}
+.pace .d{font-size:.72rem;line-height:1.45;color:var(--muted)}
+.pace input:checked+label{background:var(--yellow);color:var(--yellow-ink)}
+.pace input:checked+label .d{color:var(--yellow-ink)}
+.pace input:focus-visible+label{outline:3px solid var(--purple);outline-offset:2px}
+@media (max-width:420px){.pace{grid-template-columns:1fr}.pace label{grid-template-columns:auto 1fr;column-gap:10px;align-items:baseline}.pace .d{grid-column:1/-1}}
+
+input[type=range]{width:100%;accent-color:var(--ink);height:32px;margin:0}
+.rangeval{font-variant-numeric:tabular-nums;font-weight:900;background:var(--yellow);color:var(--yellow-ink);padding:1px 10px;border-radius:99px;margin-left:6px}
+.dateinp{min-height:44px;border:1.5px solid var(--line);border-radius:99px;background:var(--bg);padding:6px 16px;width:100%;font-weight:700}
+.wx{display:grid;gap:6px}
+.wcells{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.wc{background:var(--bg);color:var(--ink);border-radius:14px;padding:6px 10px;font-size:.78rem;line-height:1.5;min-width:0}
+.wc .wd{font-weight:900;font-variant-numeric:tabular-nums}
+.wc .wt,.wc .wr{font-variant-numeric:tabular-nums}
+.wc .wr{color:var(--muted)}
+.wdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 25%,transparent)}
+.c-clear{background:var(--orange)}.c-cloud{background:var(--slate)}.c-rain{background:var(--aqua)}.c-storm{background:var(--purple)}.c-snow{background:var(--pink)}.c-fog{background:var(--soft)}
+.wxok{font-size:.8rem;font-weight:700}
+.wxnote{font-size:.8rem;color:var(--muted)}
+.wxnote a{color:var(--ink);font-weight:900}
+.card.sel .wxnote{color:var(--yellow-ink)}
+select{min-height:44px;border:1.5px solid var(--line);border-radius:99px;background:var(--bg);padding:6px 16px;width:100%;font-weight:700}
+
+/* results */
+.reshead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;margin-bottom:12px}
+.count{font-size:.88rem;font-weight:700;font-variant-numeric:tabular-nums}
+.notice{padding:12px 16px;border-radius:18px;border:1.5px dashed var(--warn);color:var(--warn);margin-bottom:12px;font-size:.9rem;font-weight:500}
+.list{display:grid;gap:12px}
+.card{background:var(--panel);border:2px solid transparent;border-radius:24px;padding:16px 18px;display:grid;gap:8px;cursor:pointer;min-width:0}
+.card:hover{border-color:var(--line)}
+.card.sel{border-color:var(--line);background:var(--yellow);color:var(--yellow-ink)}
+.card.sel .meta,.card.sel .note,.card.sel .card-foot{color:var(--yellow-ink)}
+.card-top{display:flex;gap:10px;align-items:flex-start}
+.num{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:900;font-size:.88rem;font-variant-numeric:tabular-nums}
+.num.lv1{background:var(--green)}.num.lv3{background:var(--orange);color:#1A1A1A}.num.lv5{background:var(--red)}
+.card h3{margin:0;font-weight:900;font-size:1.15rem;line-height:1.4;letter-spacing:.03em;flex:1;min-width:0;overflow-wrap:anywhere}
+.lvpill{flex:none;font-size:.75rem;font-weight:900;padding:1px 11px;border-radius:99px;border:1.5px solid currentColor;background:var(--bg);color:var(--ink)}
+.meta{color:var(--muted);font-size:.84rem;font-variant-numeric:tabular-nums}
+.time{font-size:.93rem;font-weight:500}
+.time b{font-weight:900;font-variant-numeric:tabular-nums}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:.75rem;font-weight:700;padding:1px 10px;border-radius:99px;background:var(--bg);color:var(--ink)}
+.tag.stair{background:transparent;border:1.5px solid currentColor}
+.warn{font-size:.83rem;font-weight:700;color:var(--warn)}
+.card.sel .warn{color:#8A2A12}
+.note{font-size:.88rem;color:var(--muted)}
+.card-foot{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;font-size:.82rem;color:var(--muted)}
+.card-foot a{color:var(--ink);font-weight:900;text-decoration:underline;text-underline-offset:3px}
+.pm{font-size:.82rem;color:var(--muted)}
+.card.sel .pm{color:var(--yellow-ink)}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links a{display:inline-flex;align-items:center;min-height:34px;padding:2px 14px;border:1.5px solid var(--line);border-radius:99px;background:var(--bg);color:var(--ink);font-size:.8rem;font-weight:700;text-decoration:none}
+.links a:hover{background:var(--yellow);color:var(--yellow-ink)}
+.links a::after{content:"↗";margin-left:5px;font-size:.75em}
+.links a.biji{background:var(--green);border-color:var(--green);color:#fff}
+.links a.biji:hover{background:var(--yellow);border-color:var(--line);color:var(--yellow-ink)}
+
+/* map */
+.mapbox{position:relative;height:480px;border:1.5px solid var(--line);border-radius:24px;overflow:hidden;background:var(--sea)}
+@media (min-width:960px){.mapbox{position:sticky;top:16px;height:min(84vh,800px)}}
+#map{display:block;width:100%;height:100%;cursor:grab;user-select:none;-webkit-user-select:none}
+#map:active{cursor:grabbing}
+.sea{fill:var(--sea)}.land{fill:var(--land)}.shelf{fill:none;stroke:var(--shelf);stroke-linejoin:round}.ridge{fill:none;stroke:var(--ridge);stroke-linecap:round;stroke-linejoin:round}.rname{fill:var(--ink);opacity:.45;font-size:10px;font-weight:700;font-family:var(--font);text-anchor:middle;pointer-events:none}
+.grid{stroke:var(--grid);stroke-width:1px;stroke-dasharray:2 5}
+.gl{fill:var(--muted);font-size:10px;font-family:var(--font);font-weight:700}
+.city{fill:var(--ink)}
+.cityl{fill:var(--ink);font-size:11px;font-weight:700;font-family:var(--font)}
+.dot{fill:var(--dot);opacity:.8}
+.pin{cursor:pointer}
+.pin .bg.lv1{fill:var(--green)}.pin .bg.lv3{fill:var(--orange)}.pin .bg.lv5{fill:var(--red)}
+.pin .bg{stroke:#FFFFFF;stroke-width:2.5px}
+.pin text{fill:#FFFFFF;font-size:12px;font-weight:900;font-family:var(--font);text-anchor:middle;pointer-events:none}
+.pin .lv3+text{fill:#1A1A1A}
+.pin .ring{fill:var(--yellow);stroke:#1A1A1A;stroke-width:2.5px}
+.plabel{font-family:var(--font);font-weight:900;font-size:13px;fill:#1A1A1A;paint-order:stroke;stroke:var(--yellow);stroke-width:6px;stroke-linejoin:round;pointer-events:none}
+.ctrl{position:absolute;top:12px;right:12px;display:grid;gap:8px}
+.ctrl button{min-width:46px;min-height:46px;border:1.5px solid var(--line);border-radius:99px;background:var(--bg);cursor:pointer;font-size:1.25rem;font-weight:700;line-height:1}
+.ctrl button.txt{font-size:.8rem;font-weight:900}
+.ctrl button:hover{background:var(--yellow);color:var(--yellow-ink)}
+.legend{position:absolute;left:12px;bottom:26px;background:var(--bg);border:1.5px solid var(--line);border-radius:18px;padding:8px 12px;display:grid;gap:6px;font-size:.75rem;font-weight:700}
+.legend .lg{display:flex;flex-wrap:wrap;gap:4px 12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.scale{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.scale span.bar{display:block;height:6px;border:2px solid var(--ink);border-top:0}
+.layers{position:absolute;left:12px;top:48px;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 84px)}
+.layers button{min-height:34px;padding:0 13px;border:1.5px solid var(--line);border-radius:99px;background:var(--bg);font-size:.78rem;font-weight:700;cursor:pointer}
+.layers button:hover{background:color-mix(in srgb,var(--yellow) 45%,var(--bg))}
+.layers button[aria-pressed="true"]{background:var(--yellow);color:var(--yellow-ink)}
+.attr{position:absolute;left:0;right:0;bottom:0;text-align:right;font-size:10px;line-height:1.6;padding:0 8px;background:color-mix(in srgb,var(--bg) 82%,transparent);color:var(--muted)}
+.hint{position:absolute;left:12px;top:12px;font-size:.75rem;font-weight:700;background:var(--yellow);color:var(--yellow-ink);border-radius:99px;padding:3px 12px;max-width:calc(100% - 84px)}
+
+footer{margin-top:32px;font-size:.82rem;color:var(--muted);max-width:52em}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top"><span class="logo">TAIWAN HIKING MAP</span><span class="pillnote">示範資料</span></div>
+  <header class="hero">
+    <div>
+      <h1>爬爬狗</h1>
+      <p class="sub">告訴我們幾個人、幾天、走多快、想走多久，再勾選想要的條件，就會推薦適合的步道與山岳，並標在地圖上。</p>
+    </div>
+    <svg viewBox="0 0 300 220" role="img" aria-label="山、太陽與雲的插圖">
+      <path class="bl-aq" d="M205 38c14-14 46-12 56 6 14 2 26 14 22 28-4 14-20 20-34 16-12 10-36 8-44-6-18-2-28-20-20-34 4-8 12-12 20-10z"/>
+      <ellipse class="bl-wh" cx="236" cy="62" rx="7" ry="9"/><ellipse class="bl-wh" cx="258" cy="62" rx="7" ry="9"/>
+      <circle class="bl-ink" cx="238" cy="64" r="3.6"/><circle class="bl-ink" cx="260" cy="64" r="3.6"/>
+      <circle class="bl-rd" cx="70" cy="58" r="30"/>
+      <path class="bl-pu" d="M0 200 C30 140 60 112 100 96 C130 108 168 150 196 200Z"/>
+      <path class="bl-or" d="M96 200 C128 138 160 96 196 72 C230 96 262 150 292 200Z"/>
+      <path class="bl-gr" d="M0 204 C40 176 90 170 140 186 C190 170 250 172 300 200 L300 216 L0 216Z"/>
+      <circle class="bl-pk" cx="48" cy="150" r="9"/><circle class="bl-ye" cx="268" cy="120" r="7"/>
+    </svg>
+  </header>
+
+  <div class="layout">
+    <form class="panel form" id="form" onsubmit="return false" aria-label="行程條件">
+      <div class="row2">
+        <div class="field">
+          <label class="t" for="people">人數</label>
+          <div class="stepper">
+            <button type="button" data-step="-1" aria-label="減少人數">−</button>
+            <input id="people" type="number" inputmode="numeric" min="1" max="30" value="2">
+            <button type="button" data-step="1" aria-label="增加人數">＋</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="t" for="region">地區</label>
+          <select id="region">
+            <option value="all">全台不限</option>
+            <option value="北">北部（北北基桃竹）</option>
+            <option value="中">中部（苗中彰投雲嘉）</option>
+            <option value="南">南部（南高屏）</option>
+            <option value="東">東部（宜花東）</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="t" for="date">出發日期</label>
+        <input id="date" type="date" class="dateinp">
+        <p class="help" id="dateinfo"></p>
+      </div>
+
+      <fieldset class="field">
+        <legend>天數</legend>
+        <div class="seg" id="days">
+          <input type="radio" name="days" id="d1" value="1"><label for="d1">1 天</label>
+          <input type="radio" name="days" id="d2" value="2" checked><label for="d2">2 天</label>
+          <input type="radio" name="days" id="d3" value="3"><label for="d3">3 天</label>
+          <input type="radio" name="days" id="d4" value="4"><label for="d4">4 天</label>
+          <input type="radio" name="days" id="d5" value="5"><label for="d5">5 天</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>行進速度</legend>
+        <div class="pace" id="speed">
+          <input type="radio" name="speed" id="sp3" value="slow"><label for="sp3"><span class="n">悠閒</span><span class="j">上河 ＞ 1</span><span class="d">比標準慢，常休息拍照，或帶小孩長輩</span></label>
+          <input type="radio" name="speed" id="sp2" value="normal" checked><label for="sp2"><span class="n">一般</span><span class="j">上河 ＝ 1</span><span class="d">照標準時間走，不確定就選這個</span></label>
+          <input type="radio" name="speed" id="sp1" value="fast"><label for="sp1"><span class="n">快</span><span class="j">上河 ＜ 1</span><span class="d">比標準快，常爬山、體力好</span></label>
+        </div>
+        <p class="help">上河＝你實際走的時間 ÷ 標準時間。悠閒約慢 40%，快約快 25%。</p>
+      </fieldset>
+
+      <div class="field">
+        <label class="t" for="hrs">每天想走多久：<span class="rangeval" id="hrsv">5 小時</span></label>
+        <input id="hrs" type="range" min="1" max="10" step="0.5" value="5">
+      </div>
+
+      <fieldset class="field">
+        <legend>地點需求（可複選）</legend>
+        <div class="chips" id="reqs"></div>
+      </fieldset>
+    </form>
+
+    <section class="mapbox" aria-label="地圖">
+      <svg id="map" role="img" aria-label="台灣地圖，標示推薦的健行地點"></svg>
+      <div class="hint">拖曳平移、滾輪或雙指縮放，點編號看詳細</div>
+      <div class="layers" id="layers" role="group" aria-label="底圖">
+        <button type="button" data-k="topo" aria-pressed="true">地形圖</button>
+        <button type="button" data-k="emap" aria-pressed="false">電子地圖</button>
+        <button type="button" data-k="photo" aria-pressed="false">空照圖</button>
+        <button type="button" data-k="draw" aria-pressed="false">簡圖</button>
+      </div>
+      <div class="attr" id="attr" hidden></div>
+      <div class="ctrl">
+        <button type="button" id="zin" aria-label="放大">＋</button>
+        <button type="button" id="zout" aria-label="縮小">−</button>
+        <button type="button" id="zfit" class="txt" aria-label="縮放到推薦地點">全部</button>
+      </div>
+      <div class="legend">
+        <div class="lg"><span><i style="background:var(--green)"></i>輕鬆・容易</span><span><i style="background:var(--orange)"></i>中等</span><span><i style="background:var(--red)"></i>進階・高難度</span></div>
+        <div class="scale"><span class="bar" id="scalebar"></span><span id="scaletxt"></span></div>
+      </div>
+    </section>
+
+    <section class="results" aria-live="polite">
+      <div class="reshead"><h2>推薦地點</h2><span class="count" id="count"></span></div>
+      <div id="notice" class="notice" hidden></div>
+      <div class="list" id="list"></div>
+    </section>
+  </div>
+
+  <footer>示範資料：座標、里程、時間與難度皆為概略值，僅供規劃參考。高山路線請在出發前確認入園入山申請、山屋床位、天氣與路況。時間以「一般（上河＝1）」為標準，悠閒乘 1.4、快乘 0.75。天氣來自 Open-Meteo 的模型預報，不是氣象署預報，山區天氣變化快，出發前請再看 <a href="https://www.cwa.gov.tw/" target="_blank" rel="noopener" style="color:inherit">中央氣象署</a> 與路況公告。</footer>
+</div>
+
+<script>
+(function(){
+/* ---------- 示範資料 ----------
+  r 地區  el 最高海拔(m)  km 全程里程  up 累計爬升(m)  h 一般腳程總行走時數
+  d 最少天數  st 階梯 none/few/many  lv 難度1-5  mp 建議最少人數  pm 申請  nt 簡介 */
+const P=[
+{id:1,n:'擎天崗環形步道',r:'北',lat:25.1674,lng:121.574,el:794,km:2.6,up:40,h:1,d:1,st:'none',lv:1,t:['草原','海景','親子友善'],pm:'免申請',nt:'陽明山草原緩坡，常有水牛悠閒吃草，風大，記得帶外套。'},
+{id:2,n:'七星山主峰',r:'北',lat:25.1707,lng:121.5534,el:1120,km:3.5,up:568,h:2.5,d:1,st:'many',lv:3,t:['中級山','小百岳','火山地形'],pm:'免申請',nt:'大屯火山群最高峰，石階多，山頂可望台北盆地。'},
+{id:3,n:'象山步道',r:'北',lat:25.0276,lng:121.5717,el:183,km:1.7,up:158,h:1.7,d:1,st:'many',lv:2,t:['都會近郊','夜景'],pm:'免申請',nt:'捷運可達，一路階梯，終點是俯瞰台北101的巨石平台。'},
+{id:4,n:'信賢步道（烏來）',r:'北',lat:24.8384,lng:121.5353,el:220,km:1.5,up:12,h:0.7,d:1,st:'none',lv:1,t:['森林','溪谷','親子友善'],pm:'免申請',nt:'沿南勢溪的平緩小徑，樹蔭多，適合帶長輩小孩散步。'},
+{id:5,n:'拉拉山巨木區',r:'北',lat:24.7133,lng:121.4333,el:1650,km:3.7,up:100,h:1.7,d:1,st:'none',lv:1,t:['森林','巨木','親子友善'],pm:'需購門票',nt:'千年紅檜巨木群，棧道平整，夏季涼爽。'},
+{id:6,n:'北插天山',r:'北',lat:24.792,lng:121.4526,el:1727,km:10,up:772,h:8,d:1,st:'few',lv:4,t:['中級山','森林','原始林'],mp:3,pm:'依健行筆記標示需申請入園，出發前請查官方公告',nt:'北部經典中級山，原始林與山毛櫸，路程長、坡度陡。'},
+{id:7,n:'翠峰湖環山步道',r:'東',lat:24.516,lng:121.604,el:2000,km:4.9,up:160,h:2.8,d:1,st:'few',lv:1,t:['森林','湖泊','親子友善'],pm:'免申請',nt:'台灣最大高山湖泊，環湖路緩，常有雲霧。'},
+{id:8,n:'草嶺古道',r:'東',lat:24.9911,lng:121.9242,el:375,km:10.9,up:350,h:6,d:1,st:'few',lv:2,t:['古道','海景','草原'],pm:'免申請',nt:'東北角海岸古道，石板路、芒草與太平洋景觀，風勢強。'},
+{id:9,n:'太魯閣砂卡礑步道',r:'東',lat:24.1745,lng:121.6184,el:210,km:9,up:123,h:3.3,d:1,st:'none',lv:1,t:['溪谷','親子友善'],pm:'免申請',nt:'沿著清澈溪谷，路面平坦，適合全家與長輩。'},
+{id:10,n:'觀霧檜山巨木步道',r:'北',lat:24.5106,lng:121.1253,el:2360,km:4,up:300,h:2,d:1,st:'few',lv:2,t:['森林','巨木','雲海'],pm:'需購門票',nt:'扁柏與紅檜巨木林，山莊旁出發，空氣涼爽。'},
+{id:11,n:'合歡山主峰',r:'中',lat:24.1426,lng:121.2712,el:3417,km:3.6,up:230,h:2,d:1,st:'none',lv:2,t:['百岳','高山草原','雲海'],pm:'免申請',nt:'最容易入門的百岳之一，碎石坡道沒有階梯，高海拔請留意高山症。'},
+{id:12,n:'石門山',r:'中',lat:24.1524,lng:121.2845,el:3237,km:1.6,up:187,h:1,d:1,st:'few',lv:1,t:['百岳','高山草原','親子友善'],pm:'免申請',nt:'來回不到一小時的百岳，山頂視野開闊。'},
+{id:13,n:'合歡北峰',r:'中',lat:24.1654,lng:121.2790,el:3422,km:4,up:447,h:3,d:1,st:'few',lv:2,t:['百岳','高山草原','箭竹林'],pm:'免申請',nt:'沿著松雪樓上山，箭竹與草原，山頂可看奇萊群峰。'},
+{id:14,n:'雪山主峰',r:'中',lat:24.3835,lng:121.2318,el:3886,km:21.8,up:1746,h:14,d:2,st:'few',lv:4,t:['百岳','森林','圈谷'],mp:3,pm:'需入園申請（雪霸國家公園）',nt:'台灣第二高峰，黑森林與圈谷，通常兩天一夜。'},
+{id:15,n:'玉山主峰',r:'中',lat:23.4700,lng:120.9575,el:3952,km:21.8,up:1342,h:14,d:2,st:'few',lv:4,t:['百岳','森林','最高峰'],mp:3,pm:'入園＋入山申請（排雲山莊需抽籤）',nt:'東北亞第一高峰，排雲山莊過夜、清晨攻頂。'},
+{id:16,n:'大霸尖山',r:'中',lat:24.4577,lng:121.258,el:3492,km:62,up:1442,h:24,d:3,st:'few',lv:4,t:['百岳','森林','聖稜線'],mp:3,pm:'需入園申請（雪霸國家公園）',nt:'台灣聖山，三天兩夜的經典縱走起點。'},
+{id:17,n:'南湖大山',r:'中',lat:24.3618,lng:121.4394,el:3742,km:55,up:1794,h:30,d:4,st:'few',lv:5,t:['百岳','森林','圈谷','五嶽'],mp:4,pm:'入園＋入山申請',nt:'冰河圈谷與高山草原，體能與經驗要求高，需 4 天以上。'},
+{id:18,n:'能高越嶺古道（西段）',r:'中',lat:24.0467,lng:121.1700,el:2400,km:17,up:1000,h:9,d:1,st:'few',lv:3,t:['古道','中級山','森林','雲海'],pm:'需入山申請',nt:'清代開鑿的越嶺古道，天池山莊旁可看奇萊稜線。'},
+{id:19,n:'阿里山巨木群棧道',r:'中',lat:23.51,lng:120.8043,el:2222,km:1.1,up:54,h:1.8,d:1,st:'few',lv:1,t:['森林','巨木','親子友善'],pm:'需購門票',nt:'紅檜神木與姊妹潭，棧道平整，適合老少咸宜。'},
+{id:20,n:'溪頭神木步道',r:'中',lat:23.6776,lng:120.7936,el:1330,km:5.5,up:255,h:2,d:1,st:'few',lv:1,t:['森林','竹林','親子友善'],pm:'需購門票',nt:'柳杉與孟宗竹林，路線多、坡度緩。'},
+{id:21,n:'大雪山森林浴步道',r:'中',lat:24.2500,lng:120.9300,el:2250,km:3,up:140,h:1.2,d:1,st:'few',lv:1,t:['森林','賞鳥','親子友善'],pm:'免申請（園區門票）',nt:'大雪山國家森林遊樂區內的森林浴步道，木棧道與枕木階梯，園區以賞鳥聞名。'},
+{id:22,n:'嘉明湖',r:'東',lat:23.2934,lng:121.0341,el:3602,km:26,up:1327,h:17,d:3,st:'few',lv:4,t:['湖泊','高山草原','森林','天使的眼淚'],mp:3,pm:'需入山申請（山屋需預約）',nt:'三天兩夜，高山湖泊與草原，兼走向陽山、三叉山兩座百岳。'},
+{id:23,n:'北大武山',r:'南',lat:22.6271,lng:120.7614,el:3092,km:24,up:1540,h:12,d:1,st:'few',lv:4,t:['百岳','森林','聖山'],mp:3,pm:'需入山申請',nt:'南台灣聖山，一日往返很長，多數人安排兩天。'},
+{id:24,n:'藤枝樹海步道',r:'南',lat:23.0658,lng:120.7471,el:1600,km:6.4,up:220,h:3.3,d:1,st:'few',lv:1,t:['森林','親子友善'],pm:'需購門票（藤枝森林遊樂區）',nt:'藤枝森林遊樂區的環形步道，柳杉林間的碎石路與木棧道，園區海拔約 1550 至 1804 公尺。'},
+{id:25,n:'壽山（柴山）步道',r:'南',lat:22.642,lng:120.2656,el:356,km:5,up:213,h:3,d:1,st:'few',lv:2,t:['小百岳','海景','都會近郊'],pm:'免申請',nt:'高雄市區旁的珊瑚礁地形，可遠眺高雄港，小心獼猴。'}
+];
+
+/* ---------- 連結：官方／購票／申請（o）與健行筆記（b：路線頁編號，或 {k:關鍵字} 搜尋） ---------- */
+const REC='https://recreation.forest.gov.tw/Forest/RA?typ_id=';
+const HIKE='https://hike.taiwan.gov.tw/';
+const BIJI='https://hiking.biji.co/index.php?q=trail&';
+const YMS=['陽明山國家公園','https://www.ymsnp.gov.tw/'];
+const SPNP=['雪霸國家公園','https://www.spnp.gov.tw/'];
+const HUT=h=>HIKE+h+'.aspx';
+const HUT_FNCA=['山屋申請與抽籤（林業署）',HUT('bed_11')];
+const HUT_SP=['山屋床位查詢（雪霸）',HUT('bed_1')];
+const HEHUAN=['合歡山國家森林遊樂區',REC+'0300004'];
+const LK={
+1:{o:[YMS],b:71},2:{o:[YMS],b:54},3:{b:76},4:{b:1491},
+5:{o:[['拉拉山國家森林遊樂區（門票）',REC+'0200005']],b:446},
+6:{b:412},
+7:{o:[['太平山國家森林遊樂區',REC+'0100001']],b:373},
+8:{o:[['東北角暨宜蘭海岸國家風景區','https://www.necoast-nsa.gov.tw/']],b:171},
+9:{o:[['太魯閣國家公園','https://www.taroko.gov.tw/']],b:355},
+10:{o:[['觀霧國家森林遊樂區（門票）',REC+'0200004']],b:236},
+11:{o:[HEHUAN],b:289},12:{o:[HEHUAN],b:413},13:{o:[HEHUAN],b:288},
+14:{o:[SPNP,['入園入山申請',HIKE],HUT_SP],b:431},
+15:{o:[['玉山國家公園','https://www.ysnp.gov.tw/'],['入園入山申請','https://hike.taiwan.gov.tw/apply_1.aspx?searchOrg=c951cdcd-b75a-46b9-8002-8ef952ec95fd'],['玉山山屋抽籤日期',HUT('bed_8')],['玉山抽籤結果',HUT('bed_3')]],b:299},
+16:{o:[SPNP,['入園入山申請',HIKE],HUT_FNCA,HUT_SP],b:242},
+17:{o:[['登山申請（一站式服務網）',HIKE],HUT_SP,['山屋床位查詢（太魯閣）',HUT('bed_4')]],b:547},
+18:{o:[['林業署南投分署','https://nantou.forest.gov.tw/'],['登山申請',HIKE],['天池山莊申請與抽籤（林業署）',HUT('bed_11')]],b:291},
+19:{o:[['阿里山國家森林遊樂區',REC+'0500001'],['阿里山林業鐵路及文化資產管理處','https://afrch.forest.gov.tw/']],b:314},
+20:{o:[['溪頭自然教育園區（臺大實驗林）','https://www.exfo.ntu.edu.tw/']],b:491},
+21:{o:[['大雪山國家森林遊樂區',REC+'0300003']],b:270},
+22:{o:[['林業署臺東分署','https://taitung.forest.gov.tw/'],['登山申請',HIKE],HUT_FNCA],b:347},
+23:{o:[['林業署屏東分署','https://pingtung.forest.gov.tw/'],['登山申請',HIKE],['檜谷山莊申請與抽籤（林業署）',HUT('bed_11')]],b:338},
+24:{o:[['藤枝國家森林遊樂區',REC+'0600001']],b:1576},
+25:{b:325}
+};
+function linksHtml(p){
+  const l=LK[p.id]||{};
+  const a=(u,t,c)=>'<a'+(c?' class="'+c+'"':'')+' href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
+  let h=(l.o||[]).map(x=>a(x[1],x[0])).join('');
+  if(l.b!==undefined){
+    h+=typeof l.b==='object'
+      ?a(BIJI+'keyword='+encodeURIComponent(l.b.k),'健行筆記搜尋「'+l.b.k+'」','biji')
+      :a(BIJI+'act=detail&id='+l.b,'健行筆記心得','biji');
+  }
+  h+=a('https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lng,'Google 地圖');
+  return '<div class="links">'+h+'</div>';
+}
+const REQS=['無樓梯','中級山','百岳','小百岳','森林','湖泊','海景','古道','親子友善'];
+const F={fast:.75,normal:1,slow:1.4};
+const LVN=['','輕鬆','容易','中等','進階','高難度'];
+const LVC=['','lv1','lv1','lv3','lv5','lv5'];
+const RN={北:'北部',中:'中部',南:'南部',東:'東部'};
+const ST={none:'無樓梯',few:'少量階梯',many:'階梯多'};
+/* ---------- 日期與天氣（Open-Meteo 免費預報，最多 16 天；氣溫依各地海拔換算） ---------- */
+const WD=['日','一','二','三','四','五','六'];
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const addDays=(str,n)=>{const d=new Date(str+'T00:00:00');d.setDate(d.getDate()+n);return ymd(d)};
+const fmtD=str=>{const d=new Date(str+'T00:00:00');return (d.getMonth()+1)+'/'+d.getDate()+' '+WD[d.getDay()]};
+const TODAY=ymd(new Date()),MAXD=addDays(TODAY,15);
+const nextSat=()=>{const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));return ymd(d)};
+const CWA='https://www.cwa.gov.tw/';
+function wlab(c){
+  if(c===0)return['晴','c-clear'];if(c===1)return['大致晴','c-clear'];if(c===2)return['多雲','c-cloud'];if(c===3)return['陰','c-cloud'];
+  if(c===45||c===48)return['霧','c-fog'];if(c>=51&&c<=57)return['毛毛雨','c-rain'];if(c>=61&&c<=67)return['雨','c-rain'];
+  if(c>=71&&c<=77||c===85||c===86)return['雪','c-snow'];if(c>=80&&c<=82)return['陣雨','c-rain'];if(c>=95)return['雷雨','c-storm'];
+  return['—','c-cloud'];
+}
+const WX={state:'idle',data:{},key:'',seq:0};
+function wxInfo(p,n){
+  if(WX.state!=='ok')return null;
+  const d=WX.data[p.id];if(!d)return null;
+  const cells=[],why=new Set();let bad=0;
+  for(let i=0;i<Math.min(n,d.time.length);i++){
+    const c={date:d.time[i],code:d.weather_code[i],hi:d.temperature_2m_max[i],lo:d.temperature_2m_min[i],pop:d.precipitation_probability_max[i],rain:d.precipitation_sum[i],gust:d.wind_gusts_10m_max[i]};
+    cells.push(c);
+    let b=false;
+    if(c.pop>=60||c.rain>=15||c.code>=95){why.add('降雨機率高');b=true;}
+    if(c.gust>=55){why.add('陣風強');b=true;}
+    if(c.lo<=0&&p.el>=2000)why.add('可能結冰、低溫');
+    if(b)bad++;
+  }
+  return {cells,why:[...why],bad};
+}
+function weatherHtml(e){
+  if(WX.state==='loading'||WX.state==='idle')return '<div class="wxnote">天氣預報載入中…</div>';
+  if(WX.state==='range')return '<div class="wxnote">預報只到 '+fmtD(MAXD)+'，請選 16 天內的日期。</div>';
+  if(WX.state==='error'||!e.w)return '<div class="wxnote">目前取不到天氣預報（需要連網）。請查看 <a href="'+CWA+'" target="_blank" rel="noopener">中央氣象署</a>。</div>';
+  const w=e.w;
+  const cells=w.cells.map(c=>{const l=wlab(c.code);
+    return '<div class="wc"><div class="wd">'+fmtD(c.date)+'</div><div><i class="wdot '+l[1]+'"></i>'+l[0]+'</div><div class="wt">'+Math.round(c.lo)+'–'+Math.round(c.hi)+'°C</div><div class="wr">降雨 '+Math.round(c.pop)+'%</div></div>';}).join('');
+  const msg=w.why.length?'<div class="warn">天氣提醒：'+w.why.join('、')+'，建議備妥雨具與保暖衣物，或改期。</div>':'<div class="wxok">預報天氣穩定，適合出發。</div>';
+  return '<div class="wcells">'+cells+'</div>'+msg;
+}
+async function loadWx(){
+  const my=++WX.seq;
+  if(s.date<TODAY||s.date>MAXD){WX.state='range';$('dateinfo').textContent='預報只有未來 16 天（'+fmtD(TODAY)+' 到 '+fmtD(MAXD)+'）。';refresh(false);return;}
+  const end=addDays(s.date,5)>MAXD?MAXD:addDays(s.date,5);
+  WX.state='loading';$('dateinfo').textContent='載入天氣預報中…';refresh(false);
+  try{
+    const q='latitude='+P.map(p=>p.lat).join(',')+'&longitude='+P.map(p=>p.lng).join(',')+'&elevation='+P.map(p=>p.el).join(',')
+      +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_gusts_10m_max&timezone=Asia%2FTaipei&wind_speed_unit=kmh&start_date='+s.date+'&end_date='+end;
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?'+q);
+    if(!r.ok)throw new Error('http '+r.status);
+    const j=await r.json();
+    if(my!==WX.seq)return;
+    WX.data={};P.forEach((p,i)=>{WX.data[p.id]=j[i].daily});
+    WX.state='ok';
+    $('dateinfo').textContent='預報來源 Open-Meteo，氣溫已換算成各地最高海拔，僅供參考。';
+  }catch(err){
+    if(my!==WX.seq)return;
+    WX.state='error';
+    $('dateinfo').textContent='無法取得天氣預報（需要連網，部分預覽環境會擋掉）。請改看中央氣象署。';
+  }
+  refresh(false);
+}
+const s={people:2,days:2,speed:'normal',hrs:5,region:'all',req:new Set(),sel:null,date:nextSat(),layer:'topo'};
+const $=id=>document.getElementById(id);
+const has=(p,t)=>t==='無樓梯'?p.st==='none':p.t.includes(t);
+const fmt=h=>h<1?Math.round(h*60)+' 分鐘':(Math.round(h*10)/10)+' 小時';
+
+/* ---------- 推薦邏輯 ---------- */
+function evalP(p){
+  const need=p.h*F[s.speed];
+  const dUsed=Math.max(p.d,Math.ceil(need/s.hrs-1e-9));
+  const miss=[],warn=[];
+  if(s.days<p.d)miss.push('至少需要 '+p.d+' 天');
+  else if(dUsed>s.days)miss.push('以你的腳程約需 '+dUsed+' 天，或把每天時數調高');
+  s.req.forEach(t=>{if(!has(p,t))miss.push('不符「'+t+'」')});
+  const mp=p.mp||1;
+  if(s.people<mp)warn.push('建議 '+mp+' 人以上同行，較安全');
+  if(s.people>8&&p.pm.indexOf('申請')>-1)warn.push('人數較多，入山名額與山屋床位要提早安排');
+  const per=need/dUsed;
+  let score=100-Math.abs(per/s.hrs-.8)*40-(1-Math.min(dUsed,s.days)/s.days)*25;
+  if(s.speed==='slow'&&p.lv>=4)score-=10;
+  if(s.speed==='fast'&&p.lv>=3)score+=4;
+  score-=miss.length*40;
+  const w=wxInfo(p,dUsed);
+  if(w)score-=w.bad*12;
+  return {p,need,dUsed,per,miss,warn,score,w};
+}
+let R=[],near=false;
+function compute(){
+  const all=P.filter(p=>s.region==='all'||p.r===s.region).map(evalP);
+  const ok=all.filter(e=>!e.miss.length).sort((a,b)=>b.score-a.score);
+  if(ok.length){R=ok.slice(0,12);near=false;}
+  else{R=all.sort((a,b)=>a.miss.length-b.miss.length||b.score-a.score).slice(0,4);near=true;}
+}
+
+/* ---------- 清單 ---------- */
+function card(e,i){
+  const p=e.p,c=LVC[p.lv];
+  const time=e.dUsed>1
+    ?'預估 <b>'+e.dUsed+' 天</b>，每天約 <b>'+fmt(e.per)+'</b>（全程約 '+fmt(e.need)+'）'
+    :'預估當天來回 <b>'+fmt(e.need)+'</b>';
+  const tags=['<span class="tag stair">'+ST[p.st]+'</span>'].concat(p.t.map(t=>'<span class="tag">'+t+'</span>')).join('');
+  const msgs=e.miss.concat(e.warn).map(m=>'<div class="warn">⚠ '+m+'</div>').join('');
+  return '<article class="card'+(s.sel===p.id?' sel':'')+'" data-id="'+p.id+'" tabindex="0" aria-label="'+p.n+'，在地圖上檢視">'
+   +'<div class="card-top"><span class="num '+c+'">'+(i+1)+'</span><h3>'+p.n+'</h3><span class="lvpill '+c+'">'+LVN[p.lv]+'</span></div>'
+   +'<div class="meta">'+RN[p.r]+' · 最高 '+p.el.toLocaleString()+' m · 全程 '+p.km+' km · 累計爬升 '+p.up+' m</div>'
+   +'<div class="time">'+time+'</div>'
+   +'<div class="wx">'+weatherHtml(e)+'</div>'
+   +'<div class="tags">'+tags+'</div>'+msgs
+   +'<div class="note">'+p.nt+'</div>'
+   +'<div class="pm">入山／入園：'+p.pm+'</div>'
+   +linksHtml(p)
+   +'</article>';
+}
+function renderList(){
+  $('list').innerHTML=R.map(card).join('');
+  $('count').textContent=near?'沒有完全符合':'共 '+R.length+' 個符合'+(R.length===12?'（顯示前 12）':'');
+  const n=$('notice');
+  n.hidden=!near;
+  if(near)n.textContent='目前條件沒有地點完全符合。以下是最接近的地點，可以放寬需求、增加天數或調高每天時數。';
+  if(!R.length)$('list').innerHTML='<div class="panel note">這個地區目前沒有示範資料，請換一個地區。</div>';
+}
+
+/* ---------- 地圖（自繪 SVG，不需要外部圖磚） ---------- */
+const LNG0=119.95,LAT0=25.45;
+const MY=a=>Math.log(Math.tan(Math.PI/4+a*Math.PI/360))*180/Math.PI;
+const X=g=>(g-LNG0)*1000,Y=a=>(MY(LAT0)-MY(a))*1000;
+const W=(122.1-LNG0)*1000,H=Y(21.8);
+/* 海岸線（順時針，由富貴角起），概略座標 */
+const OUT=[[121.54,25.30],[121.60,25.28],[121.67,25.22],[121.73,25.14],[121.83,25.13],[121.92,25.13],[122.00,25.00],[121.94,24.97],[121.91,24.87],[121.86,24.72],[121.87,24.60],[121.83,24.50],[121.79,24.40],[121.72,24.28],[121.66,24.16],[121.63,24.02],[121.60,23.88],[121.52,23.70],[121.50,23.52],[121.45,23.35],[121.38,23.15],[121.30,23.02],[121.23,22.88],[121.18,22.75],[121.10,22.58],[121.00,22.45],[120.90,22.35],[120.88,22.22],[120.87,22.05],[120.85,21.91],[120.79,21.95],[120.72,22.02],[120.70,22.10],[120.68,22.24],[120.63,22.30],[120.60,22.40],[120.52,22.47],[120.45,22.55],[120.37,22.58],[120.27,22.57],[120.28,22.66],[120.20,22.78],[120.12,22.95],[120.08,23.08],[120.06,23.20],[120.10,23.32],[120.14,23.45],[120.14,23.60],[120.18,23.75],[120.26,23.88],[120.33,23.98],[120.40,24.07],[120.45,24.16],[120.50,24.28],[120.60,24.40],[120.68,24.50],[120.74,24.62],[120.85,24.74],[120.93,24.84],[121.03,24.98],[121.10,25.05],[121.20,25.10],[121.30,25.13],[121.42,25.19],[121.50,25.26]];
+const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
+const f1=v=>v.toFixed(1);
+function smooth(pts,closed){
+  const n=pts.length;let d;
+  if(closed){
+    d='M'+mid(pts[n-1],pts[0]).map(f1).join(' ');
+    pts.forEach((p,i)=>{const m=mid(p,pts[(i+1)%n]);d+='Q'+f1(p[0])+' '+f1(p[1])+' '+f1(m[0])+' '+f1(m[1]);});
+    return d+'Z';
+  }
+  d='M'+pts[0].map(f1).join(' ');
+  for(let i=1;i<n-1;i++){const m=mid(pts[i],pts[i+1]);d+='Q'+f1(pts[i][0])+' '+f1(pts[i][1])+' '+f1(m[0])+' '+f1(m[1]);}
+  return d+'L'+pts[n-1].map(f1).join(' ');
+}
+const toXY=a=>a.map(q=>[X(q[0]),Y(q[1])]);
+const LAND=smooth(toXY(OUT),true);
+/* 山脈：寬淡色帶＋窄深色脊線，裁切在陸地內 */
+const RIDGES=[
+  {n:'中央山脈',pts:[[121.62,24.58],[121.50,24.40],[121.42,24.25],[121.32,24.05],[121.22,23.85],[121.15,23.65],[121.12,23.45],[121.08,23.20],[121.02,23.00],[120.95,22.80],[120.85,22.55],[120.82,22.35]],w:130,lx:121.22,ly:23.78},
+  {n:'雪山山脈',pts:[[121.88,25.00],[121.72,24.88],[121.55,24.70],[121.40,24.55],[121.26,24.42],[121.12,24.28],[121.00,24.14]],w:110,lx:121.46,ly:24.64},
+  {n:'玉山山脈',pts:[[120.98,23.80],[120.96,23.47],[120.90,23.25],[120.80,23.05],[120.75,22.85],[120.72,22.60]],w:90,lx:120.97,ly:23.30},
+  {n:'阿里山山脈',pts:[[120.85,23.80],[120.80,23.55],[120.70,23.30],[120.62,23.10]],w:60,lx:120.74,ly:23.45},
+  {n:'海岸山脈',pts:[[121.48,23.92],[121.40,23.65],[121.32,23.40],[121.26,23.12],[121.16,22.88],[121.08,22.70]],w:60,lx:121.38,ly:23.55},
+  {n:'大屯山',pts:[[121.50,25.16],[121.58,25.18]],w:70}
+].map(r=>({n:r.n,d:smooth(toXY(r.pts),false),w:r.w,lx:r.lx&&X(r.lx),ly:r.ly&&Y(r.ly)}));
+const ISLES=[[121.95,24.84,10],[121.49,22.66,18],[121.55,22.05,28],[120.37,22.34,13]].map(a=>[X(a[0]),Y(a[1]),a[2]]);
+const CITIES=[['台北',121.56,25.04],['宜蘭',121.75,24.75],['台中',120.68,24.15],['花蓮',121.60,23.98],['台南',120.21,23.0],['高雄',120.30,22.63],['台東',121.15,22.76]];
+const mapEl=document.querySelector('.mapbox'),svg=$('map');
+let cw=600,ch=460;
+const V={z:1,cx:W/2,cy:H/2};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const unit=()=>Math.max(W/cw,H/ch)/V.z;
+function clampV(){V.z=clamp(V.z,1,MAXZ);V.cx=clamp(V.cx,0,W);V.cy=clamp(V.cy,0,H);}
+
+/* ---------- 底圖圖磚（疊在手繪簡圖上方；圖磚載入失敗時自動露出手繪簡圖） ---------- */
+const MAXZ=200;
+const LAYERS={
+  topo:{n:'地形圖',min:5,max:17,u:(z,x,y)=>'https://tile.opentopomap.org/'+z+'/'+x+'/'+y+'.png',a:'© OpenStreetMap 貢獻者、SRTM｜圖磚 © OpenTopoMap（CC-BY-SA）'},
+  emap:{n:'電子地圖',min:5,max:19,u:(z,x,y)=>'https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/'+z+'/'+y+'/'+x,a:'© 內政部國土測繪中心 臺灣通用電子地圖'},
+  photo:{n:'空照圖',min:5,max:19,u:(z,x,y)=>'https://wmts.nlsc.gov.tw/wmts/PHOTO2/default/GoogleMapsCompatible/'+z+'/'+y+'/'+x,a:'© 內政部國土測繪中心 正射影像'},
+  draw:{n:'手繪簡圖',u:null,a:''}
+};
+try{const sv=localStorage.getItem('pp-layer');if(sv&&LAYERS[sv])s.layer=sv;}catch(e){}
+const tiles=new Map(),failed=new Set();let curZ=-1,loaded=0,purgeT=0;
+const g0=document.createElementNS('http://www.w3.org/2000/svg','g'),g1=document.createElementNS('http://www.w3.org/2000/svg','g'),g2=document.createElementNS('http://www.w3.org/2000/svg','g');
+svg.appendChild(g0);svg.appendChild(g1);svg.appendChild(g2);
+function clearTiles(){tiles.forEach(t=>t.el.remove());tiles.clear();failed.clear();loaded=0;$('attr').hidden=true;}
+function updateTiles(u,x0,y0,vw,vh){
+  const L=LAYERS[s.layer];
+  if(!L.u){if(tiles.size)clearTiles();return;}
+  let z=Math.round(Math.log2(360000/(256*u))+0.4);z=clamp(z,L.min,L.max);
+  const n=Math.pow(2,z),size=360000/n,my0=MY(LAT0);
+  const ax=Math.max(x0,0),bx=Math.min(x0+vw,W),ay=Math.max(y0,0),by=Math.min(y0+vh,H);
+  if(ax>=bx||ay>=by)return;
+  const tx0=Math.floor(((ax/1000+LNG0)+180)/360*n),tx1=Math.floor(((bx/1000+LNG0)+180)/360*n);
+  const ty0=Math.floor((180-(my0-ay/1000))/360*n),ty1=Math.floor((180-(my0-by/1000))/360*n);
+  if((tx1-tx0+1)*(ty1-ty0+1)>80)return;
+  const front=z!==curZ;curZ=z;
+  for(let tx=tx0;tx<=tx1;tx++)for(let ty=ty0;ty<=ty1;ty++){
+    const key=z+'/'+tx+'/'+ty;if(failed.has(key))continue;
+    let t=tiles.get(key);
+    if(t){if(front)g1.appendChild(t.el);continue;}
+    const el=document.createElementNS('http://www.w3.org/2000/svg','image');
+    el.setAttribute('x',((tx/n*360-180)-LNG0)*1000);
+    el.setAttribute('y',(my0-(180-ty/n*360))*1000);
+    el.setAttribute('width',size*1.004);el.setAttribute('height',size*1.004);
+    el.setAttribute('preserveAspectRatio','none');
+    el.addEventListener('load',()=>{loaded++;const a=$('attr');a.textContent=LAYERS[s.layer].a;a.hidden=false;});
+    el.addEventListener('error',()=>{failed.add(key);el.remove();tiles.delete(key);});
+    el.setAttribute('href',L.u(z,tx,ty));
+    g1.appendChild(el);tiles.set(key,{el,z});
+  }
+  clearTimeout(purgeT);
+  purgeT=setTimeout(()=>{tiles.forEach((t,k)=>{if(t.z!==curZ){t.el.remove();tiles.delete(k);}});},700);
+}
+
+function drawMap(){
+  const u=unit(),vw=cw*u,vh=ch*u,x0=V.cx-vw/2,y0=V.cy-vh/2;
+  svg.setAttribute('viewBox',x0+' '+y0+' '+vw+' '+vh);
+  svg.style.touchAction=V.z>1.01?'none':'pan-y';
+  let h='<rect class="sea" x="'+x0+'" y="'+y0+'" width="'+vw+'" height="'+vh+'"/>';
+  [22,23,24,25].forEach(a=>{const y=Y(a);
+    h+='<line class="grid" x1="'+x0+'" x2="'+(x0+vw)+'" y1="'+y+'" y2="'+y+'"/><text class="gl" transform="translate('+(x0+6*u)+' '+(y-4*u)+') scale('+u+')">'+a+'°N</text>';});
+  [120,121,122].forEach(g=>{const x=X(g);
+    h+='<line class="grid" y1="'+y0+'" y2="'+(y0+vh)+'" x1="'+x+'" x2="'+x+'"/><text class="gl" transform="translate('+(x+4*u)+' '+(y0+14*u)+') scale('+u+')">'+g+'°E</text>';});
+  h+='<defs><clipPath id="lc"><path d="'+LAND+'"/></clipPath></defs>'
+    +'<path class="shelf" vector-effect="non-scaling-stroke" style="stroke-width:30px;stroke-opacity:.3" d="'+LAND+'"/>'
+    +'<path class="shelf" vector-effect="non-scaling-stroke" style="stroke-width:14px;stroke-opacity:.55" d="'+LAND+'"/>'
+    +'<path class="land" d="'+LAND+'"/>';
+  h+='<g clip-path="url(#lc)">';
+  RIDGES.forEach(r=>{h+='<path class="ridge" style="stroke-width:'+r.w*2.2+'px;stroke-opacity:.07" d="'+r.d+'"/><path class="ridge" style="stroke-width:'+r.w+'px;stroke-opacity:.14" d="'+r.d+'"/><path class="ridge" style="stroke-width:'+r.w*.35+'px;stroke-opacity:.3" d="'+r.d+'"/>';});
+  h+='</g>';
+  ISLES.forEach(i=>{h+='<circle class="land" cx="'+i[0]+'" cy="'+i[1]+'" r="'+i[2]+'"/>';});
+  if(V.z>=1.2)RIDGES.forEach(r=>{if(!r.lx)return;
+    h+='<text class="rname" transform="translate('+r.lx+' '+r.ly+') scale('+u+')">'+r.n.split('').map((ch,k)=>'<tspan x="0" dy="'+(k?'12':'0')+'">'+ch+'</tspan>').join('')+'</text>';});
+  CITIES.forEach(c=>{const x=X(c[1]),y=Y(c[2]);
+    h+='<circle class="city" cx="'+x+'" cy="'+y+'" r="'+3*u+'"/><text class="cityl" transform="translate('+(x+6*u)+' '+(y+4*u)+') scale('+u+')">'+c[0]+'</text>';});
+  g0.innerHTML=h;
+  updateTiles(u,x0,y0,vw,vh);
+  let t='';
+  const inR=new Set(R.map(e=>e.p.id));
+  P.forEach(p=>{if(!inR.has(p.id))t+='<circle class="dot" cx="'+X(p.lng)+'" cy="'+Y(p.lat)+'" r="'+3.5*u+'"><title>'+p.n+'</title></circle>';});
+  const order=R.map((e,i)=>({e,i})).sort((a,b)=>(a.e.p.id===s.sel)-(b.e.p.id===s.sel));
+  order.forEach(o=>{
+    const p=o.e.p,x=X(p.lng),y=Y(p.lat),sel=p.id===s.sel,k=sel?1.25:1;
+    t+='<g class="pin" data-id="'+p.id+'" transform="translate('+x+' '+y+') scale('+u*k+')"><title>'+p.n+'</title>'
+      +(sel?'<circle class="ring" r="20"/>':'')
+      +'<circle class="bg '+LVC[p.lv]+'" r="13"/><text y="4.5">'+(o.i+1)+'</text></g>';
+    if(sel)t+='<text class="plabel" transform="translate('+x+' '+(y-28*u)+') scale('+u+')" text-anchor="middle">'+p.n+'</text>';
+  });
+  g2.innerHTML=t;
+  // 比例尺（以台灣中部緯度約 23.5° 換算）
+  const kmU=1000/(111.32*Math.cos(23.5*Math.PI/180));let km=100;
+  [0.1,0.2,0.5,1,2,5,10,20,50,100].some(v=>{if(v*kmU/u>=50){km=v;return true}});
+  $('scalebar').style.width=(km*kmU/u)+'px';$('scaletxt').textContent=km+' km';
+}
+function setLayer(k){
+  s.layer=k;clearTiles();
+  try{localStorage.setItem('pp-layer',k);}catch(e){}
+  document.querySelectorAll('#layers button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));
+  drawMap();
+}
+
+let anim=0;
+function animateTo(z,cx,cy,instant){
+  cancelAnimationFrame(anim);
+  z=clamp(z,1,MAXZ);
+  if(instant||matchMedia('(prefers-reduced-motion: reduce)').matches){V.z=z;V.cx=cx;V.cy=cy;clampV();drawMap();return;}
+  const a={z:V.z,cx:V.cx,cy:V.cy},t0=performance.now();
+  (function step(now){
+    const t=Math.min(1,(now-t0)/380),e=1-Math.pow(1-t,3);
+    V.z=a.z+(z-a.z)*e;V.cx=a.cx+(cx-a.cx)*e;V.cy=a.cy+(cy-a.cy)*e;
+    clampV();drawMap();
+    if(t<1)anim=requestAnimationFrame(step);
+  })(t0);
+}
+function fit(instant){
+  if(!R.length){animateTo(1,W/2,H/2,instant);return;}
+  const xs=R.map(e=>X(e.p.lng)),ys=R.map(e=>Y(e.p.lat));
+  const minx=Math.min.apply(null,xs),maxx=Math.max.apply(null,xs),miny=Math.min.apply(null,ys),maxy=Math.max.apply(null,ys);
+  const bw=Math.max(maxx-minx,60)*1.5,bh=Math.max(maxy-miny,60)*1.5;
+  const u0=Math.max(W/cw,H/ch);
+  const z=Math.min(cw*u0/bw,ch*u0/bh,R.length===1?30:50);
+  animateTo(z,(minx+maxx)/2,(miny+maxy)/2,instant);
+}
+function zoomAt(px,py,f){
+  const r=svg.getBoundingClientRect(),u=unit();
+  const mx=V.cx-cw*u/2+(px-r.left)*u,my=V.cy-ch*u/2+(py-r.top)*u;
+  V.z=clamp(V.z*f,1,MAXZ);
+  const u2=unit();
+  V.cx=mx-(px-r.left)*u2+cw*u2/2;V.cy=my-(py-r.top)*u2+ch*u2/2;
+  clampV();cancelAnimationFrame(anim);drawMap();
+}
+
+const ptrs=new Map();let moved=false,start=null,pz=null;
+const pdist=()=>{const a=[...ptrs.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1};
+svg.addEventListener('pointerdown',e=>{
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===1){moved=false;start={x:e.clientX,y:e.clientY};}
+  if(ptrs.size===2){pz={d:pdist(),z:V.z};moved=true;}
+});
+svg.addEventListener('pointermove',e=>{
+  const p=ptrs.get(e.pointerId);if(!p)return;
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size===1){
+    if(!moved&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>5)moved=true;
+    if(moved){const u=unit();V.cx-=dx*u;V.cy-=dy*u;clampV();cancelAnimationFrame(anim);drawMap();}
+  }else if(ptrs.size===2){
+    V.z=clamp(pz.z*pdist()/pz.d,1,MAXZ);clampV();cancelAnimationFrame(anim);drawMap();
+  }
+});
+function up(e){
+  const was=ptrs.size===1&&!moved;
+  ptrs.delete(e.pointerId);
+  if(e.type==='pointerup'&&was){const pin=e.target.closest&&e.target.closest('.pin');if(pin)select(+pin.dataset.id,'map');}
+}
+svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);svg.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')ptrs.delete(e.pointerId)});
+svg.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,e.deltaY<0?1.25:.8)},{passive:false});
+$('zin').onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.left+r.width/2,r.top+r.height/2,1.6)};
+$('zout').onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.left+r.width/2,r.top+r.height/2,1/1.6)};
+$('zfit').onclick=()=>fit();
+
+/* ---------- 選取 ---------- */
+function select(id,from){
+  s.sel=id;
+  document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',+c.dataset.id===id));
+  const p=P.find(q=>q.id===id);
+  if(from==='map'){const c=document.querySelector('.card[data-id="'+id+'"]');if(c)c.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  else if(innerWidth<960){mapEl.scrollIntoView({block:'center',behavior:'smooth'});}
+  animateTo(Math.max(V.z,28),X(p.lng),Y(p.lat));
+}
+$('list').addEventListener('click',e=>{
+  if(e.target.closest('a'))return;
+  const c=e.target.closest('.card');if(c)select(+c.dataset.id,'card');
+});
+$('list').addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  if(e.target.closest('a'))return;
+  const c=e.target.closest('.card');if(c){e.preventDefault();select(+c.dataset.id,'card');}
+});
+
+/* ---------- 表單 ---------- */
+$('reqs').innerHTML=REQS.map((t,i)=>'<input type="checkbox" id="rq'+i+'" value="'+t+'"><label for="rq'+i+'">'+t+'</label>').join('');
+function refresh(doFit){
+  compute();
+  if(s.sel!==null&&!R.some(e=>e.p.id===s.sel))s.sel=null;
+  renderList();
+  if(doFit)fit();else drawMap();
+}
+function setPeople(v){s.people=clamp(Math.round(+v)||1,1,30);$('people').value=s.people;}
+document.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{setPeople(s.people+ +b.dataset.step);refresh(true)});
+$('people').addEventListener('change',()=>{setPeople($('people').value);refresh(true)});
+$('region').addEventListener('change',e=>{s.region=e.target.value;refresh(true)});
+$('hrs').addEventListener('input',e=>{s.hrs=+e.target.value;$('hrsv').textContent=fmt(s.hrs);refresh(true)});
+document.querySelectorAll('input[name=days]').forEach(i=>i.addEventListener('change',()=>{s.days=+i.value;refresh(true)}));
+document.querySelectorAll('input[name=speed]').forEach(i=>i.addEventListener('change',()=>{s.speed=i.value;refresh(true)}));
+$('reqs').addEventListener('change',e=>{if(e.target.checked)s.req.add(e.target.value);else s.req.delete(e.target.value);refresh(true)});
+
+function measure(){cw=mapEl.clientWidth||600;ch=mapEl.clientHeight||460;}
+if(window.ResizeObserver)new ResizeObserver(()=>{measure();drawMap()}).observe(mapEl);
+measure();
+$('hrsv').textContent=fmt(s.hrs);
+$('date').min=TODAY;$('date').max=MAXD;$('date').value=s.date;
+$('date').addEventListener('change',e=>{if(e.target.value){s.date=e.target.value;loadWx();}});
+document.querySelectorAll('#layers button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.k===s.layer);b.addEventListener('click',()=>setLayer(b.dataset.k));});
+compute();renderList();fit(true);
+loadWx();
+})();
+</script>
+</body>
+</html>
